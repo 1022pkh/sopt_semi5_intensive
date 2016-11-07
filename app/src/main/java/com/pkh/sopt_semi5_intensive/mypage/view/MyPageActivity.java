@@ -14,6 +14,16 @@ import com.facebook.AccessToken;
 import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
 import com.facebook.login.LoginManager;
+import com.kakao.auth.ErrorCode;
+import com.kakao.kakaolink.KakaoLink;
+import com.kakao.kakaolink.KakaoTalkLinkMessageBuilder;
+import com.kakao.network.ErrorResult;
+import com.kakao.usermgmt.UserManagement;
+import com.kakao.usermgmt.callback.LogoutResponseCallback;
+import com.kakao.usermgmt.callback.MeResponseCallback;
+import com.kakao.usermgmt.response.model.UserProfile;
+import com.kakao.util.KakaoParameterException;
+import com.kakao.util.helper.log.Logger;
 import com.pkh.sopt_semi5_intensive.R;
 import com.pkh.sopt_semi5_intensive.main.view.MainActivity;
 
@@ -42,7 +52,7 @@ public class MyPageActivity extends AppCompatActivity {
     String loginMethod = "";
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_page);
 
@@ -58,9 +68,26 @@ public class MyPageActivity extends AppCompatActivity {
             facebookRequestProfile();
         }
         else if(loginMethod.equals("kakao")){
-
+            kakaoRequestProfile();
         }
 
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if(loginMethod.equals("facebook")){
+            LoginManager.getInstance().logOut();
+        }
+        else if(loginMethod.equals("kakao")){
+            //kakao 로그아웃
+            UserManagement.requestLogout(new LogoutResponseCallback() {
+                @Override
+                public void onCompleteLogout() {
+                }
+            });
+        }
     }
 
     @Override
@@ -87,12 +114,18 @@ public class MyPageActivity extends AppCompatActivity {
          */
         if(loginMethod.equals("facebook")){
             LoginManager.getInstance().logOut();
-            Toast.makeText(getApplicationContext(),"로그아웃 완료",Toast.LENGTH_SHORT).show();
-            moveMainPageActivity();
         }
         else if(loginMethod.equals("kakao")){
-
+            //kakao 로그아웃
+            UserManagement.requestLogout(new LogoutResponseCallback() {
+                @Override
+                public void onCompleteLogout() {
+                }
+            });
         }
+
+        Toast.makeText(getApplicationContext(),"로그아웃 완료",Toast.LENGTH_SHORT).show();
+        moveMainPageActivity();
     }
 
     private void moveMainPageActivity() {
@@ -101,6 +134,9 @@ public class MyPageActivity extends AppCompatActivity {
          * 마이페이지로 이동한다.
          */
         Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();
     }
@@ -154,6 +190,90 @@ public class MyPageActivity extends AppCompatActivity {
         parameters.putString("fields", "id,name,email,gender, birthday");
         request.setParameters(parameters);
         request.executeAsync();
+    }
+
+    /**
+     * kakao 사용자의 정보를 가져오기 위해 API 호출을 한다.
+     */
+    protected void kakaoRequestProfile() {
+        UserManagement.requestMe(new MeResponseCallback() {
+            @Override
+            public void onFailure(ErrorResult errorResult) {
+                String message = "failed to get user info. msg=" + errorResult;
+                Logger.d(message);
+
+                ErrorCode result = ErrorCode.valueOf(errorResult.getErrorCode());
+                if (result == ErrorCode.CLIENT_ERROR_CODE) {
+                    finish();
+                } else {
+                    moveMainPageActivity();
+                }
+            }
+
+            @Override
+            public void onSessionClosed(ErrorResult errorResult) {
+                Log.i("myTag","error3");
+                moveMainPageActivity();
+            }
+
+            @Override
+            public void onNotSignedUp() {} // 카카오톡 회원이 아닐 시 showSignup(); 호출해야함
+
+            @Override
+            public void onSuccess(UserProfile userProfile) {  //성공 시 userProfile 형태로 반환
+
+                Log.i("myTag", String.valueOf(userProfile.getId()));
+                Log.i("myTag", String.valueOf(userProfile.getNickname()));
+                Logger.d("UserProfile : " + userProfile);
+
+                String thumnailImg = userProfile.getProfileImagePath();
+                String name = String.valueOf(userProfile.getNickname());
+
+                /**
+                 *  페이스북 프로필이미지의 url주소
+                 */
+                Glide.with(MyPageActivity.this)
+                        .load(thumnailImg)
+                        .into(profileImage);
+
+                methodText.setText("kakao 연동 중");
+                profileNickname.setText(name);
+
+            }
+        });
+    }
+
+    @OnClick(R.id.sendKaKao)
+    public void sendKakao() {
+//        Toast.makeText(getApplicationContext(),"kakao " +marketId,Toast.LENGTH_SHORT).show();
+
+        /**
+         * 카톡 내보내는 곳
+         */
+        try {
+            KakaoLink kakaoLink = KakaoLink.getKakaoLink(getApplicationContext());
+            KakaoTalkLinkMessageBuilder kakaoTalkLinkMessageBuilder = kakaoLink.createKakaoTalkLinkMessageBuilder();
+
+            int width = 150;
+            int height = 150;
+
+            String imageSrc = "http://sopt.org/wp/wp-content/uploads/2014/01/SOPT-logo-300x80.png";
+
+            kakaoTalkLinkMessageBuilder
+                    .addText("카카오 내보내기 입니다!")
+                    .addImage(imageSrc, width, height)
+                    .addWebButton("솝트 정보 홈페이지", "http://sopt.org/wp/")
+                    .build();
+
+
+            //메시지 전달
+            kakaoLink.sendMessage(kakaoTalkLinkMessageBuilder, MyPageActivity.this);
+
+        } catch (KakaoParameterException e) {
+            e.printStackTrace();
+            Log.i("myTag", String.valueOf(e));
+        }
+
     }
 
 }

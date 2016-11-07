@@ -17,6 +17,11 @@
             android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/facebook_app_id" />
 
+        <!-- 카카오톡 키 설정-->
+        <meta-data
+            android:name="com.kakao.sdk.AppKey"
+            android:value="@string/kakao_app_key" />
+
         <!-- 페이스북 연동을 위한 페이스북 activity 추가 -->
         <activity
             android:name="com.facebook.FacebookActivity"
