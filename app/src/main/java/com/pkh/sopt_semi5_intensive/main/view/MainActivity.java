@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
@@ -13,6 +12,7 @@ import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.pkh.sopt_semi5_intensive.R;
 import com.pkh.sopt_semi5_intensive.main.model.Token;
+import com.pkh.sopt_semi5_intensive.mypage.view.MyPageActivity;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -27,10 +27,6 @@ public class MainActivity extends AppCompatActivity implements MainView{
     //페이스북 콜백메소드
     CallbackManager mFacebookCallbackManager;
 
-
-    //Back 키 두번 클릭 여부 확인
-    private final long FINSH_INTERVAL_TIME = 2000;
-    private long backPressedTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +85,8 @@ public class MainActivity extends AppCompatActivity implements MainView{
 
                 Log.i("myTag", String.valueOf(token.access_token));
 
+                moveMyPageActivity("facebook");
+
             }
 
             @Override
@@ -104,30 +102,30 @@ public class MainActivity extends AppCompatActivity implements MainView{
         });
     }
 
-    @Override
-    public void onBackPressed() {
-        long tempTime = System.currentTimeMillis();
-        long intervalTime = tempTime - backPressedTime;
 
-        /**
-         * Back키 두번 연속 클릭 시 앱 종료
-         */
-        if ( 0 <= intervalTime && FINSH_INTERVAL_TIME >= intervalTime ) {
-            super.onBackPressed();
-        }
-        else {
-            backPressedTime = tempTime;
-            Toast.makeText(getApplicationContext(),"뒤로 가기 키을 한번 더 누르시면 종료됩니다.",Toast.LENGTH_SHORT).show();
-        }
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         /**
          * 필수!!!
+         * 아래의 코드는 페이스북에 필요한 코드
          */
         mFacebookCallbackManager.onActivityResult(requestCode, resultCode, data);
 
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void moveMyPageActivity(String loginMethod) {
+        /**
+         * 회원가입 성공 시,
+         * 마이페이지로 이동한다.
+         */
+        Intent intent = new Intent(this, MyPageActivity.class);
+        intent.putExtra("login",loginMethod);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 }
