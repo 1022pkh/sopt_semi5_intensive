@@ -2,12 +2,29 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.pkh.sopt_semi5_intensive">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
+        android:name=".application.GlobalApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <!--페이스북 앱ID값 설정-->
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id"/>
+
+        <!--페이스북 연동을 위한 페이스북 activity 추가-->
+        <activity android:name="com.facebook.FacebookActivity"
+            android:configChanges=
+                "keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:label="@string/app_name" />
+
+
         <activity android:name=".main.view.MainActivity">
         </activity>
 
